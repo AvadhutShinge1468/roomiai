@@ -54,6 +54,9 @@ const Navbar = () => {
                   <DropdownMenuItem onClick={() => navigate("/matches")}>
                     My Matches
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/history")}>
+                    Match History
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="mr-2 h-4 w-4" /> Sign Out
                   </DropdownMenuItem>
