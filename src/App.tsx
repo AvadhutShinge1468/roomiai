@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import MatchHistory from "./pages/MatchHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/questionnaire" element={<Questionnaire />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/history" element={<MatchHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
