@@ -43,7 +43,7 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
-                onClick={() => navigate("/questionnaire")}
+                onClick={() => navigate("/auth")}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-base font-semibold shadow-elevated transition-all hover:scale-105"
               >
                 Find My Match
