@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type QuestionType = "single" | "slider";
 
@@ -57,6 +59,7 @@ const Questionnaire = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const step = steps[currentStep];
   const totalSteps = steps.length;
@@ -68,13 +71,37 @@ const Questionnaire = () => {
 
   const canProceed = step.questions.every((q) => answers[q.id] !== undefined);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep((s) => s + 1);
     } else {
-      // Save answers and navigate to matches
-      localStorage.setItem("roomie_answers", JSON.stringify(answers));
-      navigate("/matches");
+      setSubmitting(true);
+      try {
+        // Generate a session ID for this submission
+        const sessionId = crypto.randomUUID();
+
+        // Save answers to database
+        const { data: submission, error: submitError } = await supabase
+          .from("questionnaire_submissions")
+          .insert({ session_id: sessionId, answers })
+          .select("id")
+          .single();
+
+        if (submitError) throw submitError;
+
+        // Store session info for the matches page
+        localStorage.setItem("roomie_session", JSON.stringify({
+          submission_id: submission.id,
+          session_id: sessionId,
+          answers,
+        }));
+
+        navigate("/matches");
+      } catch (error) {
+        console.error("Submission error:", error);
+        toast.error("Failed to save your answers. Please try again.");
+        setSubmitting(false);
+      }
     }
   };
 
@@ -175,17 +202,24 @@ const Questionnaire = () => {
             variant="outline"
             onClick={() => currentStep > 0 ? setCurrentStep((s) => s - 1) : navigate("/")}
             className="rounded-full px-6"
+            disabled={submitting}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           <Button
             onClick={handleNext}
-            disabled={!canProceed}
+            disabled={!canProceed || submitting}
             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 font-semibold shadow-elevated disabled:opacity-50 disabled:shadow-none"
           >
-            {currentStep === totalSteps - 1 ? "Find Matches" : "Next"}
-            <ArrowRight className="ml-2 h-4 w-4" />
+            {submitting ? (
+              <>Saving...</>
+            ) : currentStep === totalSteps - 1 ? (
+              <>Find Matches</>
+            ) : (
+              <>Next</>
+            )}
+            {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </div>
       </div>
