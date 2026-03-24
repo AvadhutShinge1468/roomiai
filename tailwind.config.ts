@@ -13,7 +13,15 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'sans-serif'],
+        display: ['Playfair Display', 'serif'],
+      },
       colors: {
+        "rose-soft": "hsl(var(--rose-soft))",
+        "rose-glow": "hsl(var(--rose-glow))",
+        "slate-deep": "hsl(var(--slate-deep))",
+        "warm-bg": "hsl(var(--warm-bg))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
