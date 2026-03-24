@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 type QuestionType = "single" | "slider";
@@ -57,9 +58,17 @@ const steps: { title: string; questions: Question[] }[] = [
 
 const Questionnaire = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
 
   const step = steps[currentStep];
   const totalSteps = steps.length;
@@ -75,21 +84,23 @@ const Questionnaire = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep((s) => s + 1);
     } else {
+      if (!user) { navigate("/auth"); return; }
       setSubmitting(true);
       try {
-        // Generate a session ID for this submission
         const sessionId = crypto.randomUUID();
 
-        // Save answers to database
         const { data: submission, error: submitError } = await supabase
           .from("questionnaire_submissions")
-          .insert({ session_id: sessionId, answers })
+          .insert({
+            session_id: sessionId,
+            answers,
+            user_id: user.id,
+          })
           .select("id")
           .single();
 
         if (submitError) throw submitError;
 
-        // Store session info for the matches page
         localStorage.setItem("roomie_session", JSON.stringify({
           submission_id: submission.id,
           session_id: sessionId,
@@ -105,47 +116,30 @@ const Questionnaire = () => {
     }
   };
 
+  if (authLoading) return null;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-24 pb-12 container mx-auto px-4 max-w-2xl">
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-muted-foreground mb-2">
             <span>Step {currentStep + 1} of {totalSteps}</span>
             <span>{step.title}</span>
           </div>
           <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4 }}
-            />
+            <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
         </div>
 
-        {/* Step indicators */}
         <div className="flex gap-2 mb-10">
           {steps.map((s, i) => (
-            <div
-              key={s.title}
-              className={`flex-1 h-1 rounded-full transition-colors ${
-                i <= currentStep ? "bg-primary" : "bg-secondary"
-              }`}
-            />
+            <div key={s.title} className={`flex-1 h-1 rounded-full transition-colors ${i <= currentStep ? "bg-primary" : "bg-secondary"}`} />
           ))}
         </div>
 
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-8"
-          >
+          <motion.div key={currentStep} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }} className="space-y-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">{step.title}</h2>
 
             {step.questions.map((q) => (
@@ -173,20 +167,10 @@ const Questionnaire = () => {
 
                 {q.type === "slider" && (
                   <div className="space-y-2">
-                    <input
-                      type="range"
-                      min={q.min}
-                      max={q.max}
-                      value={(answers[q.id] as number) ?? q.min}
-                      onChange={(e) => setAnswer(q.id, parseInt(e.target.value))}
-                      className="w-full accent-primary h-2 rounded-full cursor-pointer"
-                      style={{ accentColor: "hsl(347 77% 50%)" }}
-                    />
+                    <input type="range" min={q.min} max={q.max} value={(answers[q.id] as number) ?? q.min} onChange={(e) => setAnswer(q.id, parseInt(e.target.value))} className="w-full accent-primary h-2 rounded-full cursor-pointer" style={{ accentColor: "hsl(347 77% 50%)" }} />
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{q.minLabel}</span>
-                      <span className="font-semibold text-foreground">
-                        {(answers[q.id] as number) ?? q.min}
-                      </span>
+                      <span className="font-semibold text-foreground">{(answers[q.id] as number) ?? q.min}</span>
                       <span>{q.maxLabel}</span>
                     </div>
                   </div>
@@ -196,29 +180,12 @@ const Questionnaire = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation */}
         <div className="flex justify-between mt-12">
-          <Button
-            variant="outline"
-            onClick={() => currentStep > 0 ? setCurrentStep((s) => s - 1) : navigate("/")}
-            className="rounded-full px-6"
-            disabled={submitting}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+          <Button variant="outline" onClick={() => currentStep > 0 ? setCurrentStep((s) => s - 1) : navigate("/")} className="rounded-full px-6" disabled={submitting}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
-          <Button
-            onClick={handleNext}
-            disabled={!canProceed || submitting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 font-semibold shadow-elevated disabled:opacity-50 disabled:shadow-none"
-          >
-            {submitting ? (
-              <>Saving...</>
-            ) : currentStep === totalSteps - 1 ? (
-              <>Find Matches</>
-            ) : (
-              <>Next</>
-            )}
+          <Button onClick={handleNext} disabled={!canProceed || submitting} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 font-semibold shadow-elevated disabled:opacity-50 disabled:shadow-none">
+            {submitting ? "Saving..." : currentStep === totalSteps - 1 ? "Find Matches" : "Next"}
             {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </div>
