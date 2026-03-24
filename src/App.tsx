@@ -31,6 +31,7 @@ const App = () => (
             <Route path="/questionnaire" element={<Questionnaire />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/history" element={<MatchHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
