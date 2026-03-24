@@ -50,7 +50,7 @@ const Matches = () => {
             .single();
 
           if (prevMatches?.matches) {
-            const matchData = (prevMatches.matches as MatchProfile[]).map((m, i) => ({ ...m, id: i + 1 }));
+            const matchData = (prevMatches.matches as unknown as MatchProfile[]).map((m, i) => ({ ...m, id: i + 1 }));
             setMatches(matchData);
             setLoading(false);
             return;
