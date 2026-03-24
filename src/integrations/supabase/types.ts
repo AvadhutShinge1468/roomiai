@@ -14,7 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_results: {
+        Row: {
+          created_at: string
+          id: string
+          matches: Json
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matches: Json
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matches?: Json
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_results_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_submissions: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          session_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          session_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
